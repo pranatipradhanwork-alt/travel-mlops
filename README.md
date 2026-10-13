@@ -55,7 +55,7 @@ travel-mlops/
 ├── Dockerfile, Dockerfile.streamlit, docker-compose.yml, Jenkinsfile                    → docs/DEPLOYMENT.md
 ├── tests/                    24 pytest tests (API contract, recommender, data, drift)
 ├── reports/                  MODEL_EVALUATION.md, figures/, drift_report.json
-├── docs/                     PROJECT_REPORT.md, VIDEO_SCRIPT.md, DEPLOYMENT.md
+├── docs/                     PROJECT_REPORT.md, DEPLOYMENT.md
 ├── scripts/generate_data.py  synthetic data with the same schema (demo only)
 └── Makefile                  one-line commands for everything below
 ```
@@ -129,4 +129,3 @@ curl -X POST localhost:8000/predict -H 'Content-Type: application/json' \
 ## Documentation
 * [Project report](docs/PROJECT_REPORT.md): problem, data, design, results, challenges, future work
 * [Model evaluation](reports/MODEL_EVALUATION.md): metrics, figures, interpretation
-* [Video script & interview prep](docs/VIDEO_SCRIPT.md)
