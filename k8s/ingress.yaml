@@ -1,4 +1,5 @@
-# Requires an ingress controller (e.g. `minikube addons enable ingress`).
+# Optional - not in kustomization.yaml. Needs an nginx ingress controller
+# (minikube: `minikube addons enable ingress`), then: kubectl apply -f k8s/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

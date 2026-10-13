@@ -5,7 +5,6 @@ resources:
   - api-deployment.yaml
   - api-hpa.yaml
   - streamlit.yaml
-  - ingress.yaml
 images:   # `kustomize edit set image` in Jenkins rewrites these
   - name: travel-price-api
     newTag: latest
