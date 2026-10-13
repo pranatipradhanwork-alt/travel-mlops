@@ -1,0 +1,21 @@
+# Requires an ingress controller (e.g. `minikube addons enable ingress`).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: travel-ml
+  namespace: travel-ml
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: travel.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: travel-streamlit, port: {number: 80}}}
+    - host: api.travel.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: travel-price-api, port: {number: 80}}}

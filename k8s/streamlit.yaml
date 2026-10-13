@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: travel-streamlit
+  namespace: travel-ml
+  labels: {app: travel-streamlit}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: travel-streamlit}
+  template:
+    metadata:
+      labels: {app: travel-streamlit}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 1000}
+      containers:
+        - name: streamlit
+          image: travel-streamlit:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8501, name: http}]
+          env:
+            - {name: API_URL, value: "http://travel-price-api.travel-ml.svc.cluster.local"}
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /_stcore/health, port: http}
+            initialDelaySeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: travel-streamlit
+  namespace: travel-ml
+spec:
+  selector: {app: travel-streamlit}
+  ports: [{port: 80, targetPort: http, name: http}]
