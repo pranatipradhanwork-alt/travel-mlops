@@ -1,3 +1,4 @@
+"""Gunicorn settings for the API container: models are preloaded once and shared by all workers."""
 import os
 
 bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"

@@ -51,7 +51,7 @@ destination city (100% match).
 positive prices, `from ≠ to`, `total = price × days`, and every userCode existing in users.
 The capstone data passes all of them.
 
-**Exploratory findings that shaped the design** (details in `reports/MODEL_EVALUATION.md` §1):
+**Exploratory findings that shaped the design** (charts in `notebooks/travel_capstone_analysis.ipynb`, details in `reports/MODEL_EVALUATION.md` §1):
 * The price is constant within each (route, class, agency) group, so it is a deterministic lookup.
 * `time` and `distance` are perfectly correlated (r = 1.0), and dates have no effect on price.
 * There are only 9 hotels, one per city, each with a fixed price.

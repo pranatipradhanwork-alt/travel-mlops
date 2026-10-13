@@ -1,24 +1,29 @@
-"""Evaluation figures saved to reports/figures/ and logged to MLflow."""
-import matplotlib
+"""Evaluation figures saved to reports/figures/ and logged to MLflow.
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-from sklearn.metrics import ConfusionMatrixDisplay  # noqa: E402
+Uses matplotlib's object-oriented Figure API (no pyplot), so importing this module
+never switches the global backend - notebooks keep rendering their own charts inline.
+"""
+import numpy as np
+from matplotlib.figure import Figure
+from sklearn.metrics import ConfusionMatrixDisplay
 
-from src.config import FIGURES_DIR  # noqa: E402
+from src.config import FIGURES_DIR
+
+
+def _figure(figsize, ncols=1):
+    fig = Figure(figsize=figsize)
+    return fig, fig.subplots(1, ncols)
 
 
 def _save(fig, name):
     path = FIGURES_DIR / name
     fig.tight_layout()
     fig.savefig(path, dpi=120)
-    plt.close(fig)
     return path
 
 
 def predicted_vs_actual(y_true, y_pred, title, name):
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
+    fig, axes = _figure((11, 4.5), ncols=2)
     idx = np.random.default_rng(0).choice(len(y_true), min(5000, len(y_true)), replace=False)
     yt, yp = np.asarray(y_true)[idx], np.asarray(y_pred)[idx]
     axes[0].scatter(yt, yp, s=4, alpha=0.3)
@@ -31,7 +36,7 @@ def predicted_vs_actual(y_true, y_pred, title, name):
 
 
 def bar(labels, values, title, xlabel, name, color="#3b6fb6"):
-    fig, ax = plt.subplots(figsize=(8, 0.45 * len(labels) + 1.2))
+    fig, ax = _figure((8, 0.45 * len(labels) + 1.2))
     order = np.argsort(values)
     ax.barh(np.asarray(labels)[order], np.asarray(values)[order], color=color)
     ax.set(title=title, xlabel=xlabel)
@@ -40,7 +45,7 @@ def bar(labels, values, title, xlabel, name, color="#3b6fb6"):
 
 def grouped_bars(groups, series, title, ylabel, name):
     """series: {series_name: [value per group]}"""
-    fig, ax = plt.subplots(figsize=(9, 4.5))
+    fig, ax = _figure((9, 4.5))
     x = np.arange(len(groups))
     w = 0.8 / len(series)
     for i, (label, vals) in enumerate(series.items()):
@@ -54,7 +59,7 @@ def grouped_bars(groups, series, title, ylabel, name):
 
 
 def confusion(y_true, y_pred, labels, title, name):
-    fig, ax = plt.subplots(figsize=(5, 4.5))
+    fig, ax = _figure((5, 4.5))
     ConfusionMatrixDisplay.from_predictions(y_true, y_pred, labels=labels, ax=ax, colorbar=False)
     ax.set_title(title)
     return _save(fig, name)

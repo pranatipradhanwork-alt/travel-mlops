@@ -1,7 +1,7 @@
 PY ?= .venv/bin/python
 export MLFLOW_DISABLE_AGENT_HINT=1
 
-.PHONY: setup data train monitor test api ui mlflow-ui docker-build docker-up colima-up k8s-deploy k8s-forward minikube-deploy jenkins-up jenkins-build airflow lint clean
+.PHONY: setup data train notebook monitor test api ui mlflow-ui docker-build docker-up colima-up k8s-deploy k8s-forward minikube-deploy jenkins-up jenkins-build airflow lint clean
 
 setup:            ## create virtualenv and install everything
 	python3 -m venv .venv && .venv/bin/pip install -U pip && .venv/bin/pip install -r requirements-dev.txt
@@ -11,6 +11,9 @@ data:             ## ONLY for demos without the real dataset: overwrites data/*.
 
 train:            ## validate data + train all models + log to MLflow
 	$(PY) -m src.pipeline
+
+notebook:         ## re-run the EDA & modeling notebook in place (outputs saved for GitHub)
+	cd notebooks && ../.venv/bin/jupyter nbconvert --to notebook --execute --inplace travel_capstone_analysis.ipynb
 
 monitor:          ## PSI drift report -> reports/drift_report.json
 	$(PY) -m src.monitor
