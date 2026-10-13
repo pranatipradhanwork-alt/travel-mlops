@@ -1,0 +1,34 @@
+# In-cluster load generator for the HPA demo (not part of kustomization.yaml).
+# kubectl -n travel-ml apply -f k8s/loadgen.yaml ; kubectl -n travel-ml delete -f k8s/loadgen.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: loadgen
+  namespace: travel-ml
+spec:
+  restartPolicy: Never
+  containers:
+    - name: loadgen
+      image: travel-price-api:latest
+      imagePullPolicy: IfNotPresent
+      command: ["python", "-c"]
+      args:
+        - |
+          import json, threading, time, urllib.request
+          URL = "http://travel-price-api/predict"
+          rows = [{"from": "Recife (PE)", "to": "Natal (RN)", "flightType": t, "agency": "Rainbow"}
+                  for t in ("economic", "premium", "firstClass")] * 20
+          body = json.dumps(rows).encode()
+          done, end = [0], time.time() + 150
+          def worker():
+              while time.time() < end:
+                  try:
+                      urllib.request.urlopen(urllib.request.Request(
+                          URL, body, {"Content-Type": "application/json"}), timeout=10).read()
+                      done[0] += 1
+                  except Exception:
+                      pass
+          threads = [threading.Thread(target=worker) for _ in range(16)]
+          [t.start() for t in threads]
+          [t.join() for t in threads]
+          print("requests", done[0])
