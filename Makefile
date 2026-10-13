@@ -45,6 +45,7 @@ k8s-deploy: docker-build   ## deploy to the current cluster (Colima k3s shares D
 	kubectl -n travel-ml rollout status deployment/travel-streamlit --timeout=180s
 
 k8s-forward:      ## API -> localhost:8000, Streamlit -> localhost:8501
+	@kubectl cluster-info >/dev/null 2>&1 || { echo "Kubernetes is not reachable - start it first: colima start (wait ~1 min)"; exit 1; }
 	kubectl -n travel-ml port-forward svc/travel-price-api 8000:80 & \
 	kubectl -n travel-ml port-forward svc/travel-streamlit 8501:80
 
