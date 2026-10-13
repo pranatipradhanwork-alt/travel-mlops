@@ -17,8 +17,8 @@ minikube addons enable metrics-server     # required by the HPA
 minikube addons enable ingress
 make minikube-deploy                      # builds images, loads them into minikube, applies k8s/
 kubectl -n travel-ml get pods,svc,hpa
-kubectl -n travel-ml port-forward svc/travel-price-api 5000:80
-curl localhost:5000/health
+kubectl -n travel-ml port-forward svc/travel-price-api 8000:80
+curl localhost:8000/health
 ```
 
 ## Watch it scale
@@ -27,7 +27,7 @@ kubectl -n travel-ml get hpa -w                         # terminal 1
 # terminal 2: generate load (install `hey`: brew install hey)
 hey -z 2m -c 50 -m POST -H 'Content-Type: application/json' \
   -d '{"from":"Recife (PE)","to":"Natal (RN)","flightType":"economic","agency":"Rainbow"}' \
-  http://localhost:5000/predict
+  http://localhost:8000/predict
 ```
 When average CPU goes above 60%, replicas scale up (they can double every 30 s). Scale-down waits 5 minutes
 to avoid flapping.

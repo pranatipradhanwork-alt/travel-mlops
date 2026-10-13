@@ -3,7 +3,7 @@ services:
   api:
     build: .
     image: travel-price-api:local
-    ports: ["5000:5000"]
+    ports: ["8000:8000"]
     environment:
       GUNICORN_WORKERS: "2"
     restart: unless-stopped
@@ -15,6 +15,6 @@ services:
     image: travel-streamlit:local
     ports: ["8501:8501"]
     environment:
-      API_URL: http://api:5000
+      API_URL: http://api:8000
     depends_on: [api]
 

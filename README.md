@@ -68,7 +68,7 @@ git clone <this-repo> && cd travel-mlops
 make setup        # .venv + dependencies
 make train        # validate → drift check → train 3 models → MLflow (~2 min)
 make test         # 24 tests
-make api          # REST API      → http://localhost:5000
+make api          # REST API      → http://localhost:8000
 make ui           # Streamlit     → http://localhost:8501
 make mlflow-ui    # MLflow        → http://localhost:5001
 ```
@@ -93,7 +93,7 @@ make mlflow-ui    # MLflow        → http://localhost:5001
 ## Example
 
 ```bash
-curl -X POST localhost:5000/predict -H 'Content-Type: application/json' \
+curl -X POST localhost:8000/predict -H 'Content-Type: application/json' \
   -d '{"from":"Recife (PE)","to":"Florianopolis (SC)","flightType":"firstClass","agency":"FlyingDrops"}'
 # {"model_version":1,"predictions":{"known_route":true,"model":"random_forest","predicted_price":1434.38}}
 ```

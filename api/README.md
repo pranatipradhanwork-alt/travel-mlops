@@ -7,13 +7,13 @@ across all worker processes.
 ## Run
 
 ```bash
-make api                                            # dev server  → http://localhost:5000
+make api                                            # dev server  → http://localhost:8000
 gunicorn -c api/gunicorn.conf.py api.app:app        # production server (used in Docker)
 ```
 
 | Env var | Default | Purpose |
 |---|---|---|
-| `PORT` | 5000 | Bind port |
+| `PORT` | 8000 | Bind port |
 | `GUNICORN_WORKERS` / `GUNICORN_THREADS` | 2 / 4 | Concurrency per pod |
 | `MODEL_DIR` | `./models` | Where the `.joblib` files are loaded from |
 
@@ -29,7 +29,7 @@ gunicorn -c api/gunicorn.conf.py api.app:app        # production server (used in
 | `distance` | only for unseen routes | `676.53` |
 
 ```bash
-curl -X POST localhost:5000/predict -H 'Content-Type: application/json' \
+curl -X POST localhost:8000/predict -H 'Content-Type: application/json' \
   -d '{"from":"Recife (PE)","to":"Florianopolis (SC)","flightType":"firstClass","agency":"FlyingDrops"}'
 ```
 ```json
@@ -43,7 +43,7 @@ curl -X POST localhost:5000/predict -H 'Content-Type: application/json' \
 
 ### `POST /predict/gender`
 ```bash
-curl -X POST localhost:5000/predict/gender -H 'Content-Type: application/json' -d '{"name":"Patricia Carson"}'
+curl -X POST localhost:8000/predict/gender -H 'Content-Type: application/json' -d '{"name":"Patricia Carson"}'
 ```
 ```json
 {"gender": "female", "confidence": 0.92, "probabilities": {"female": 0.92, "male": 0.08}, "note": "..."}
@@ -52,7 +52,7 @@ curl -X POST localhost:5000/predict/gender -H 'Content-Type: application/json' -
 ### `GET /recommend/<user_code>`
 Query parameters: `k` (1–20, default 5), `max_price` (nightly), `place`, `exclude_booked=true`.
 ```bash
-curl "localhost:5000/recommend/0?k=3&max_price=250"
+curl "localhost:8000/recommend/0?k=3&max_price=250"
 ```
 Returns the user's profile plus ranked hotels with a `reason`. Unknown users get popularity-based suggestions (cold start).
 

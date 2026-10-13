@@ -35,4 +35,4 @@ model = mlflow.sklearn.load_model("models:/flight-price-regressor@champion")
 
 * **Roll back:** point the alias at an earlier version (MLflow UI → Models → Aliases, or
   `MlflowClient().set_registered_model_alias(name, "champion", "3")`).
-* **Shared tracking server:** set `MLFLOW_TRACKING_URI=http://mlflow:5000`. No code changes are needed.
+* **Shared tracking server:** set `MLFLOW_TRACKING_URI=http://mlflow:5001`. No code changes are needed.

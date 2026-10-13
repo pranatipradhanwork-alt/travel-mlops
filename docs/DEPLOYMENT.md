@@ -19,8 +19,8 @@ API image design:
 ```bash
 make train                                   # models must exist before building
 docker build -t travel-price-api .
-docker run -p 5000:5000 travel-price-api
-docker compose up --build                    # API :5000 + Streamlit :8501 (UI calls the API)
+docker run -p 8000:8000 travel-price-api
+docker compose up --build                    # API :8000 + Streamlit :8501 (UI calls the API)
 ```
 
 ## Jenkins CI/CD

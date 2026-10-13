@@ -2,7 +2,7 @@
 
 ```bash
 make ui                                   # http://localhost:8501, uses local model files
-API_URL=http://localhost:5000 make ui     # price and gender predictions go through the Flask API
+API_URL=http://localhost:8000 make ui     # price and gender predictions go through the Flask API
 ```
 
 | Tab | What you can do |

@@ -21,7 +21,7 @@ test:
 lint:
 	.venv/bin/flake8 src api tests streamlit_app airflow/dags --max-line-length 120
 
-api:              ## Flask dev server on :5000
+api:              ## Flask dev server on :8000
 	$(PY) -m api.app
 
 ui:               ## Streamlit on :8501

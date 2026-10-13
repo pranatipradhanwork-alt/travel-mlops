@@ -22,7 +22,7 @@ spec:
         - name: api
           image: travel-price-api:latest   # Jenkins replaces this with the build tag
           imagePullPolicy: IfNotPresent
-          ports: [{containerPort: 5000, name: http}]
+          ports: [{containerPort: 8000, name: http}]
           envFrom: [{configMapRef: {name: travel-api-config}}]
           resources:
             requests: {cpu: 250m, memory: 384Mi}
