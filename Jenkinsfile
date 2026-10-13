@@ -1,22 +1,27 @@
 // Objective 6: CI/CD for the travel price prediction service.
 // Required Jenkins credentials:
-//   docker-registry-creds  (username/password)  - push images
 //   kubeconfig             (secret file)        - deploy to the cluster
+//   docker-registry-creds  (username/password)  - push images (only when REGISTRY != 'local')
+// REGISTRY=local builds images straight into the cluster's Docker engine (Colima/k3s,
+// minikube docker-env) - no push needed. See jenkins/README.md for the local setup.
 pipeline {
     agent any
 
     parameters {
-        string(name: 'REGISTRY', defaultValue: 'docker.io/your-dockerhub-user', description: 'Image registry/namespace')
+        string(name: 'REGISTRY', defaultValue: 'local',
+               description: "'local' = cluster shares Jenkins' Docker engine (no push); else e.g. docker.io/<user>")
         booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to Kubernetes after a green build')
         booleanParam(name: 'RETRAIN', defaultValue: true, description: 'Retrain models (false = reuse models/ from workspace)')
     }
 
     environment {
         IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'local'}"
-        API_IMAGE = "${params.REGISTRY}/travel-price-api"
-        UI_IMAGE  = "${params.REGISTRY}/travel-streamlit"
+        IMAGE_PREFIX = "${params.REGISTRY == 'local' ? '' : params.REGISTRY + '/'}"
+        API_IMAGE = "${IMAGE_PREFIX}travel-price-api"
+        UI_IMAGE  = "${IMAGE_PREFIX}travel-streamlit"
         MLFLOW_DISABLE_AGENT_HINT = '1'
         VENV = "${WORKSPACE}/.venv"
+        PIP_CACHE_DIR = "${JENKINS_HOME}/.pip-cache"
     }
 
     options {
@@ -92,7 +97,7 @@ pipeline {
             steps {
                 sh '''
                     docker rm -f api-smoke >/dev/null 2>&1 || true
-                    docker run -d --name api-smoke -p 15000:5000 "$API_IMAGE:$IMAGE_TAG"
+                    docker run -d --name api-smoke -p 15000:8000 "$API_IMAGE:$IMAGE_TAG"
                     for i in $(seq 1 30); do
                         curl -fsS http://localhost:15000/health && break
                         sleep 2
@@ -107,7 +112,7 @@ pipeline {
         }
 
         stage('Push images') {
-            when { expression { params.DEPLOY } }
+            when { expression { params.DEPLOY && params.REGISTRY != 'local' } }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-registry-creds',
                                                   usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {

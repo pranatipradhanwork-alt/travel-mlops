@@ -1,0 +1,39 @@
+# Jenkins Configuration as Code: no setup wizard, job and credentials pre-created.
+# LOCAL DEMO ONLY: security is disabled. Never expose this instance to a network.
+jenkins:
+  systemMessage: "Travel MLOps - local CI/CD (security disabled; demo only)"
+  numExecutors: 1
+  securityRealm: none
+  authorizationStrategy: unsecured
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - file:
+              scope: GLOBAL
+              id: kubeconfig
+              fileName: kubeconfig
+              description: "kubeconfig for the local Colima/k3s cluster"
+              secretBytes: "${readFileBase64:/run/secrets/kubeconfig}"
+jobs:
+  - script: |
+      pipelineJob('travel-mlops') {
+        description('Lint, validate, train (MLflow), test, build, smoke-test and deploy the travel ML services.')
+        parameters {
+          stringParam('REGISTRY', 'local', "'local' = no push; else e.g. docker.io/<user>")
+          booleanParam('DEPLOY', true, 'Deploy to Kubernetes after a green build')
+          booleanParam('RETRAIN', true, 'Retrain models')
+        }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('file:///repo') }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(false)
+          }
+        }
+      }
