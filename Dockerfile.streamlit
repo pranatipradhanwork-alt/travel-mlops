@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MLFLOW_DISABLE_AGENT_HINT=1
+WORKDIR /app
+COPY requirements.txt requirements-ui.txt ./
+RUN pip install --no-cache-dir -r requirements-ui.txt
+COPY src/ src/
+COPY streamlit_app/ streamlit_app/
+COPY models/ models/
+COPY data/ data/
+COPY reports/ reports/
+RUN useradd --create-home --uid 1000 appuser && chown -R appuser /app
+USER appuser
+EXPOSE 8501
+CMD ["streamlit", "run", "streamlit_app/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]

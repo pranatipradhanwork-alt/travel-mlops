@@ -1,0 +1,20 @@
+# Local stack: API + Streamlit. (MLflow UI: `make mlflow-ui`)   docker compose up --build
+services:
+  api:
+    build: .
+    image: travel-price-api:local
+    ports: ["5000:5000"]
+    environment:
+      GUNICORN_WORKERS: "2"
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    image: travel-streamlit:local
+    ports: ["8501:8501"]
+    environment:
+      API_URL: http://api:5000
+    depends_on: [api]
+
