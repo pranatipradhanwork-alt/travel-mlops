@@ -51,6 +51,7 @@ travel-mlops/
 ├── streamlit_app/            Streamlit web app                                          → streamlit_app/README.md
 ├── airflow/dags/             orchestration DAG                                          → airflow/README.md
 ├── k8s/                      Deployment, Service, HPA, PDB, Ingress, Kustomize          → k8s/README.md
+├── jenkins/                  local Jenkins image + config-as-code (job, credentials)    → jenkins/README.md
 ├── Dockerfile, Dockerfile.streamlit, docker-compose.yml, Jenkinsfile                    → docs/DEPLOYMENT.md
 ├── tests/                    24 pytest tests (API contract, recommender, data, drift)
 ├── reports/                  MODEL_EVALUATION.md, figures/, drift_report.json
@@ -61,7 +62,8 @@ travel-mlops/
 
 ## Quick start
 
-Requirements: Python 3.12+. Docker, kubectl/minikube, Airflow and Jenkins are optional and only needed for those components.
+Requirements: Python 3.12+. For the container parts: `brew install colima docker docker-buildx kubectl`, then
+`make colima-up` (Docker + Kubernetes in one VM). minikube or Docker Desktop also work.
 
 ```bash
 git clone <this-repo> && cd travel-mlops
@@ -71,6 +73,13 @@ make test         # 24 tests
 make api          # REST API      → http://localhost:8000
 make ui           # Streamlit     → http://localhost:8501
 make mlflow-ui    # MLflow        → http://localhost:5001
+```
+
+Containers, Kubernetes and CI/CD (all verified end to end on Colima):
+
+```bash
+make colima-up && make k8s-deploy && make k8s-forward     # Kubernetes: API :8000, Streamlit :8501
+make jenkins-up && make jenkins-build                       # Jenkins pipeline → http://localhost:8080
 ```
 
 **VS Code:** open the folder, select the `.venv` interpreter, and use **Run and Debug** → *Flask API* / *Streamlit app* /
@@ -83,9 +92,9 @@ make mlflow-ui    # MLflow        → http://localhost:5001
 | 1 | Flight price regression | Time-based + unseen-route evaluation, 4 candidates incl. feature ablation | [reports](reports/MODEL_EVALUATION.md#2-flight-price-regression) |
 | 2 | REST API | `/predict`, `/predict/gender`, `/recommend`, `/health`, `/metrics`, input validation | [api/README.md](api/README.md) |
 | 3 | Docker | Multi-stage, non-root, healthcheck, models baked in per tag | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
-| 4 | Kubernetes | Rolling updates, probes, HPA 2–10, PDB, Ingress | [k8s/README.md](k8s/README.md) |
+| 4 | Kubernetes | Rolling updates, probes, HPA 2–10 (verified 2→10 under load), PDB, Ingress | [k8s/README.md](k8s/README.md) |
 | 5 | Airflow | ingest → validate → drift → 3× train (parallel) → gate → deploy | [airflow/README.md](airflow/README.md) |
-| 6 | Jenkins | lint → validate → train → test → build → smoke → push → deploy + auto-rollback | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| 6 | Jenkins | lint → validate → train → test → build → smoke → push → deploy + auto-rollback (verified, 3 min 40 s) | [jenkins/README.md](jenkins/README.md) |
 | 7 | MLflow | 3 experiments, model registry, `@champion` alias, figures as artifacts | [src/README.md](src/README.md#mlflow-usage) |
 | 8 | Gender classifier | Binary name model; 3-class and behaviour experiments logged | [reports](reports/MODEL_EVALUATION.md#3-gender-classification) |
 | 9 | Recommender + Streamlit | Hybrid recommender, 5-tab app with insights and monitoring | [streamlit_app/README.md](streamlit_app/README.md) |

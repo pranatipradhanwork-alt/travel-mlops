@@ -82,14 +82,17 @@ in your own words. Speaking naturally matters more than reading word for word.
 > which model answered, and the model version from the registry."
 
 ## 5. MLOps pipeline & deployment — 2 min
-**Show:** `Dockerfile` → `k8s/api-hpa.yaml` → `Jenkinsfile` stages → Airflow DAG graph → MLflow Models page.
+**Show:** `Dockerfile` → `kubectl -n travel-ml get pods,hpa` (or a recording of the scale test) → Jenkins Stage View
+at http://localhost:8080/job/travel-mlops/ → Airflow DAG graph → MLflow Models page.
 
 > "Docker packages the API with its exact dependencies and models into one image: a multi-stage build that runs as a
 > non-root user and has a health check. The tag is the build number plus the git commit, so every image is one exact
 > version.
 >
 > Kubernetes runs that image. It does rolling updates with zero downtime and readiness probes, so a pod only gets traffic
-> once its models are loaded. A Horizontal Pod Autoscaler scales from 2 to 10 pods when CPU passes 60%.
+> once its models are loaded. A Horizontal Pod Autoscaler scales from 2 to 10 pods when CPU passes 60%. I tested it with
+> a load generator inside the cluster: it went from 2 to 10 pods in 40 seconds. Some pods stayed pending because
+> my single node ran out of CPU, and in the cloud a cluster autoscaler would add nodes at that point.
 >
 > Jenkins is the CI/CD pipeline. On every commit it lints, validates the data, retrains with quality gates, runs 24
 > tests, builds the images, smoke-tests the container, pushes, and deploys. If the rollout isn't healthy it rolls

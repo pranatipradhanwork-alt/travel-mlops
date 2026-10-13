@@ -104,9 +104,9 @@ The capstone data passes all of them.
 |---|---|
 | **MLflow** | 3 experiments. Every run logs parameters, metrics, figures and the model artifact with its signature. The Model Registry versions each model, and versions that pass the gates get the `@champion` alias. |
 | **Docker** | Multi-stage, non-root API image with a healthcheck and the models baked in. Image tag = build + git SHA, so it identifies an exact code + model version. |
-| **Kubernetes** | Deployment with rolling updates (`maxUnavailable: 0`), readiness/liveness probes, resource limits, HPA (2–10 pods on CPU/memory), PodDisruptionBudget and Ingress. |
+| **Kubernetes** | Deployment with rolling updates (`maxUnavailable: 0`), readiness/liveness probes, resource limits, HPA (2–10 pods on CPU/memory), PodDisruptionBudget and Ingress. Verified on k3s (Colima): under in-cluster load the HPA scaled 2→10 pods in 40 s and served 35,087 batch requests in 150 s. |
 | **Airflow** | Weekly DAG: ingest → validate → drift → 3 parallel trainers → quality gate → deploy or alert. Tested end to end on Airflow 3.3.2 (61 s). |
-| **Jenkins** | lint → data validation → train with gates → tests → parallel image builds → container smoke test → push → deploy with automatic rollback. |
+| **Jenkins** | lint → data validation → train with gates → tests → parallel image builds → container smoke test → push → deploy with automatic rollback. Run end to end on a local Jenkins defined as code (3 min 40 s, 24/24 tests). The deployed image tag `1-<git sha>` ties the running pods to the exact commit. |
 | **Monitoring** | PSI drift report (all features < 0.04 PSI, so stable), API `/metrics`, and a Streamlit monitoring tab. |
 
 ### 4.6 Streamlit application
@@ -128,6 +128,8 @@ The app can call the API (`API_URL`) so the UI and the model service scale indep
 | Sparse one-hot output crashed HistGradientBoosting on the full data | Dense one-hot encoding (`sparse_output=False`). Found by running the real data end to end. |
 | Recommender metrics inflated by tied zero scores | Random tie-breaking in ranking evaluation. The inflated hit@3 of 0.45 corrected to an honest 0.375. |
 | MLflow 3 default (skops) serializer rejects tree internals | Logged with cloudpickle for these trusted, self-produced models. |
+| The API container crashed on start: pandas 3 needs `pyarrow`, which locally only arrived through MLflow | Separate serving requirements with `pyarrow` pinned. A clean container build caught what the dev environment hid. |
+| Port 5000 is taken by the macOS AirPlay receiver | Moved the API to port 8000 everywhere. |
 | Parallel Airflow trainers writing one metrics file | One metrics file per model, so there is no write race. |
 | Keeping Airflow's environment separate from the ML stack | Training runs as subprocesses in the project's virtualenv. |
 
