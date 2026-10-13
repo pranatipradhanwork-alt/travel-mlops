@@ -1,9 +1,5 @@
-pandas==3.0.6
-numpy>=2.0,<3
-scikit-learn==1.9.1
-joblib>=1.4
-flask>=3.0,<4
-gunicorn>=23.0
+# Training + serving (local development, Airflow, Jenkins).
+-r requirements-serve.txt
 mlflow==3.17.0
-requests>=2.32
 matplotlib>=3.9
+requests>=2.32

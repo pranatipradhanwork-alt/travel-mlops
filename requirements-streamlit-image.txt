@@ -1,0 +1,5 @@
+# Runtime dependencies for the Streamlit image.
+-r requirements-serve.txt
+streamlit==1.65.0
+plotly==7.1.0
+requests==2.34.2

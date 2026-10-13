@@ -1,8 +1,8 @@
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MLFLOW_DISABLE_AGENT_HINT=1
 WORKDIR /app
-COPY requirements.txt requirements-ui.txt ./
-RUN pip install --no-cache-dir -r requirements-ui.txt
+COPY requirements-serve.txt requirements-streamlit-image.txt ./
+RUN pip install --no-cache-dir -r requirements-streamlit-image.txt
 COPY src/ src/
 COPY streamlit_app/ streamlit_app/
 COPY models/ models/
