@@ -1,0 +1,9 @@
+.venv
+.git
+__pycache__
+*.pyc
+mlruns
+mlflow.db
+airflow/logs
+.pytest_cache
+.vscode

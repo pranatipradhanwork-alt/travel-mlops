@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+mlruns/
+mlflow.db
+airflow/logs/
+airflow/*.db
+airflow/*.cfg
+.DS_Store
+# Trained models are produced by the pipeline; remove these lines if you want to commit them.
+models/*.joblib
+.claude/
+data/landing/
+data/archive/

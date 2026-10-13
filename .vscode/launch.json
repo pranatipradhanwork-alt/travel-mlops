@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flask API",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "api.app",
+      "env": {"MLFLOW_DISABLE_AGENT_HINT": "1"}
+    },
+    {
+      "name": "Streamlit app",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": ["run", "streamlit_app/app.py"]
+    },
+    {
+      "name": "Train all models",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.pipeline",
+      "env": {"MLFLOW_DISABLE_AGENT_HINT": "1"}
+    },
+    {
+      "name": "Generate synthetic data",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "scripts/generate_data.py"
+    }
+  ]
+}
