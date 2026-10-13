@@ -1,0 +1,42 @@
+{
+  "served_model": "binary_name_only",
+  "registry_version": 1,
+  "passed_gate": true,
+  "label_distribution": {
+    "male": 452,
+    "female": 448,
+    "none": 440
+  },
+  "experiments": {
+    "3class_name_only": {
+      "accuracy": 0.5425,
+      "f1_macro": 0.5298,
+      "precision_macro": 0.5232,
+      "recall_macro": 0.5405,
+      "unseen_names_accuracy": 0.4769,
+      "unseen_names_f1_macro": 0.4731
+    },
+    "binary_name_plus_behaviour": {
+      "accuracy": 0.9,
+      "f1_macro": 0.9,
+      "precision_macro": 0.9003,
+      "recall_macro": 0.9001,
+      "unseen_names_accuracy": 0.7533,
+      "unseen_names_f1_macro": 0.7531
+    },
+    "binary_name_only": {
+      "accuracy": 0.8944,
+      "f1_macro": 0.8944,
+      "precision_macro": 0.895,
+      "recall_macro": 0.8945,
+      "unseen_names_accuracy": 0.7644,
+      "unseen_names_f1_macro": 0.7641
+    }
+  },
+  "accuracy": 0.8944,
+  "f1_macro": 0.8944,
+  "precision_macro": 0.895,
+  "recall_macro": 0.8945,
+  "unseen_names_accuracy": 0.7644,
+  "unseen_names_f1_macro": 0.7641
+}

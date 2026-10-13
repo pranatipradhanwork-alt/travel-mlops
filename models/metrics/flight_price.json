@@ -1,0 +1,51 @@
+{
+  "best_model": "random_forest",
+  "registry_version": 1,
+  "passed_gate": true,
+  "split": "time-based, test >= 2021-11-25",
+  "permutation_importance": {
+    "from": 180.51,
+    "to": 116.78,
+    "flightType": 325.29,
+    "agency": 41.67,
+    "distance": 394.29
+  },
+  "candidates": {
+    "ridge": {
+      "rmse": 102.15521029793607,
+      "mae": 80.4012545145751,
+      "r2": 0.9207294697896681,
+      "mape": 10.208457312498211,
+      "unseen_route_rmse": 120.67418774031606,
+      "unseen_route_mae": 97.29040265752795,
+      "unseen_route_r2": 0.8820706294683529
+    },
+    "random_forest": {
+      "rmse": 4.943032481179444e-12,
+      "mae": 3.632126819863315e-12,
+      "r2": 1.0,
+      "mape": 3.657708544356378e-13,
+      "unseen_route_rmse": 191.8900269885929,
+      "unseen_route_mae": 154.8324748598787,
+      "unseen_route_r2": 0.6978907114666809
+    },
+    "hist_gradient_boosting": {
+      "rmse": 3.390264433845558,
+      "mae": 2.4931181362631616,
+      "r2": 0.9999126912308085,
+      "mape": 0.3058069338812073,
+      "unseen_route_rmse": 166.2415204605267,
+      "unseen_route_mae": 134.1615277323985,
+      "unseen_route_r2": 0.7699370502827767
+    },
+    "hgb_with_time_and_date": {
+      "rmse": 3.3308864138316565,
+      "mae": 2.474478817064902,
+      "r2": 0.9999157227482632,
+      "mape": 0.30406135205046797,
+      "unseen_route_rmse": 165.93891997827527,
+      "unseen_route_mae": 134.05842395833386,
+      "unseen_route_r2": 0.7707816393069663
+    }
+  }
+}

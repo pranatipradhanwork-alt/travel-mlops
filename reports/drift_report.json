@@ -1,0 +1,17 @@
+{
+  "psi": {
+    "price": 0.0094,
+    "distance": 0.0338,
+    "flightType": 0.001,
+    "agency": 0.001,
+    "from": 0.0136,
+    "to": 0.0136
+  },
+  "threshold": 0.2,
+  "drifted_features": {},
+  "drift_detected": false,
+  "reference_rows": 270626,
+  "current_rows": 1262,
+  "mean_price_reference": 957.3,
+  "mean_price_current": 973.02
+}
