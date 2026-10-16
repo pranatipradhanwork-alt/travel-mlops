@@ -7,6 +7,5 @@ mlflow.db
 airflow/logs
 .pytest_cache
 .vscode
-.claude
 data/landing
 data/archive

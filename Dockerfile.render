@@ -2,7 +2,7 @@
 FROM python:3.12-slim AS trainer
 WORKDIR /app
 ENV MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_TRACKING_URI=sqlite:///mlflow.db
-COPY requirements.txt .
+COPY requirements.txt requirements-serve.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY data/ data/
