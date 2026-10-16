@@ -22,6 +22,7 @@ COPY requirements-serve.txt requirements-streamlit-image.txt ./
 RUN pip install --no-cache-dir -r requirements-streamlit-image.txt
 COPY src/ src/
 COPY streamlit_app/ streamlit_app/
+COPY .streamlit/ .streamlit/
 COPY data/ data/
 COPY --from=trainer /app/models/ models/
 COPY --from=trainer /app/reports/ reports/

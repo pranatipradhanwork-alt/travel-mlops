@@ -4,6 +4,7 @@
 If API_URL is set (Docker/K8s), the price and gender tabs call the Flask API;
 otherwise they load the model files directly.
 """
+import html
 import json
 import os
 import sys
@@ -23,6 +24,38 @@ from src.tracking import read_metrics  # noqa: E402
 
 API_URL = os.getenv("API_URL", "").rstrip("/")
 st.set_page_config(page_title="Voyage Analytics", page_icon="✈️", layout="wide")
+
+PALETTE = ["#2563EB", "#14B8A6", "#F59E0B", "#8B5CF6", "#EF4444", "#0EA5E9"]
+px.defaults.template = "plotly_white"
+px.defaults.color_discrete_sequence = PALETTE
+px.defaults.color_continuous_scale = "Blues"
+
+st.markdown("""<style>
+.block-container {padding-top: 2rem;}
+[data-testid="stMetricValue"] {font-size: 1.6rem;}
+.hero {background: linear-gradient(120deg, #1E3A8A 0%, #2563EB 55%, #14B8A6 100%); color: #fff;
+       border-radius: 18px; padding: 28px 32px; margin-bottom: 1.2rem;}
+.hero h1 {color: #fff; font-size: 2.3rem; margin: 0; padding: 0;}
+.hero p {color: #DBEAFE; margin: 6px 0 18px; font-size: 1.05rem;}
+.stats {display: flex; flex-wrap: wrap; gap: 12px;}
+.stat {background: rgba(255,255,255,.14); border-radius: 12px; padding: 10px 16px; min-width: 130px;}
+.stat b {display: block; font-size: 1.4rem;} .stat span {font-size: .85rem; color: #DBEAFE;}
+.card {background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 14px 18px;
+       margin-bottom: 10px; display: flex; align-items: center; gap: 16px;
+       box-shadow: 0 1px 2px rgba(15,23,42,.04);}
+.rank {background: #DBEAFE; color: #1E40AF; font-weight: 700; border-radius: 10px;
+       min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;}
+.card .main {flex: 1;} .card .name {font-weight: 600; font-size: 1.05rem;}
+.chip {display: inline-block; background: #CCFBF1; color: #115E59; border-radius: 999px;
+       padding: 1px 10px; font-size: .8rem; margin-left: 6px;}
+.card .why {color: #64748B; font-size: .88rem; margin-top: 2px;}
+.card .num {text-align: right; min-width: 92px;} .card .num b {font-size: 1.15rem; display: block;}
+.card .num span {color: #64748B; font-size: .78rem;}
+.result {background: #fff; border: 1px solid #E2E8F0; border-left: 6px solid #2563EB;
+         border-radius: 14px; padding: 18px 22px;}
+.result .big {font-size: 2.2rem; font-weight: 700; color: #1E3A8A;}
+.result .sub {color: #64748B;}
+</style>""", unsafe_allow_html=True)
 
 
 @st.cache_resource
@@ -45,9 +78,15 @@ def call_api(method, path, **kw):
 users, flights, hotels, outbound = get_data()
 rec = get_model(RECOMMENDER_PATH)
 
-st.title("✈️ Voyage Analytics")
-st.caption("Flight price prediction · hotel recommendations · gender classification — "
-           + (f"predictions served by API at {API_URL}" if API_URL else "predictions from local model files"))
+n_cities = len(set(flights["from"]) | set(flights["to"]))
+st.markdown(f"""<div class="hero"><h1>✈️ Voyage Analytics</h1>
+<p>Hotel recommendations, flight price prediction and travel insights for a Brazilian travel agency.</p>
+<div class="stats">
+<div class="stat"><b>{users['code'].nunique():,}</b><span>travellers</span></div>
+<div class="stat"><b>{flights['travelCode'].nunique():,}</b><span>round trips</span></div>
+<div class="stat"><b>{len(hotels):,}</b><span>hotel stays</span></div>
+<div class="stat"><b>{n_cities}</b><span>cities</span></div>
+</div></div>""", unsafe_allow_html=True)
 tab_rec, tab_insights, tab_price, tab_gender, tab_models = st.tabs(
     ["🏨 Hotel recommendations", "📊 Travel insights", "💸 Flight price", "👤 Gender", "🧪 Model monitoring"])
 
@@ -75,51 +114,55 @@ with tab_rec:
         if not recs:
             st.info("No hotels match those filters. Try a higher budget.")
         for i, r in enumerate(recs, 1):
-            with st.container(border=True):
-                a, b, c = st.columns([3, 1, 1])
-                stays = f" · stayed {r['times_booked']}x" if r["times_booked"] else ""
-                a.markdown(f"**{i}. {r['name']}** — {r['place']}  \n_{r['reason']}{stays}_")
-                b.metric("Per night", f"R$ {r['avg_price']:,.0f}")
-                c.metric("Typical stay", f"{r['avg_days']:.1f} nights")
+            stays = f" · you stayed here {r['times_booked']}x" if r["times_booked"] else ""
+            st.markdown(f"""<div class="card"><div class="rank">{i}</div>
+<div class="main"><div class="name">{html.escape(r['name'])}<span class="chip">{html.escape(r['place'])}</span></div>
+<div class="why">{html.escape(r['reason'])}{stays}</div></div>
+<div class="num"><b>R$ {r['avg_price']:,.0f}</b><span>per night</span></div>
+<div class="num"><b>{r['avg_days']:.1f}</b><span>nights, typical</span></div></div>""",
+                        unsafe_allow_html=True)
     if user_code is not None:
         hist = hotels[hotels["userCode"] == user_code].sort_values("date", ascending=False)
         with st.expander(f"Booking history ({len(hist)} stays)"):
             st.dataframe(hist[["date", "name", "place", "days", "price", "total"]], hide_index=True,
-                         use_container_width=True)
+                         width="stretch")
 
 # ---------------------------------------------------------------- insights
 with tab_insights:
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Users", f"{users['code'].nunique():,}")
-    m2.metric("Round trips", f"{flights['travelCode'].nunique():,}")
-    m3.metric("Hotel stays", f"{len(hotels):,}")
-    m4.metric("Avg flight price", f"R$ {flights['price'].mean():,.0f}")
+    route_counts = outbound.groupby(["from", "to"]).size()
+    busiest, busiest_n = route_counts.idxmax(), route_counts.max()
+    m1.metric("Avg flight price", f"R$ {flights['price'].mean():,.0f}")
+    m2.metric("Avg hotel night", f"R$ {hotels['price'].mean():,.0f}")
+    m3.metric("Avg hotel stay", f"{hotels['days'].mean():.1f} nights")
+    m4.metric(f"Busiest route: {busiest[0].split(' (')[0]} → {busiest[1].split(' (')[0]}",
+              f"{busiest_n:,} trips")
 
     c1, c2 = st.columns(2)
     monthly = outbound.set_index("date").resample("MS")["price"].count().rename("trips").reset_index()
-    c1.plotly_chart(px.line(monthly, x="date", y="trips", title="Trips per month"), use_container_width=True)
+    c1.plotly_chart(px.line(monthly, x="date", y="trips", title="Trips per month"), width="stretch")
     c2.plotly_chart(px.box(flights, x="flightType", y="price", color="agency",
                            category_orders={"flightType": ["economic", "premium", "firstClass"]},
-                           title="Flight price by class and agency"), use_container_width=True)
+                           title="Flight price by class and agency"), width="stretch")
 
     c3, c4 = st.columns(2)
     dest = hotels.groupby("place").agg(stays=("travelCode", "count"), price=("price", "mean")).reset_index()
     c3.plotly_chart(px.bar(dest.sort_values("stays"), x="stays", y="place", orientation="h", color="price",
-                           title="Hotel stays by city (colour = nightly price)"), use_container_width=True)
+                           title="Hotel stays by city (colour = nightly price)"), width="stretch")
     routes = flights.groupby(["from", "to", "flightType"]).agg(distance=("distance", "first"),
                                                                price=("price", "mean")).reset_index()
     c4.plotly_chart(px.scatter(routes, x="distance", y="price", color="flightType", hover_data=["from", "to"],
-                               title="Average price vs distance per route"), use_container_width=True)
+                               title="Average price vs distance per route"), width="stretch")
 
     c5, c6 = st.columns(2)
     od = pd.crosstab(outbound["from"], outbound["to"])
     c5.plotly_chart(px.imshow(od, title="Trips: origin → destination", aspect="auto",
-                              color_continuous_scale="Blues"), use_container_width=True)
+                              color_continuous_scale="Blues"), width="stretch")
     demo = users.merge(hotels, left_on="code", right_on="userCode")
     demo["age_band"] = pd.cut(demo["age"], [0, 30, 45, 60, 200], labels=["<30", "30-44", "45-59", "60+"])
     c6.plotly_chart(px.histogram(demo, x="age_band", y="total", histfunc="avg", color="company",
                                  barmode="group", title="Average hotel spend per stay by age and company"),
-                    use_container_width=True)
+                    width="stretch")
     st.info("**Insight:** destinations are spread almost evenly across cities for every origin, age group "
             "and company, which is why personal history adds only a modest lift to recommendations "
             "(see Model monitoring).")
@@ -137,19 +180,30 @@ with tab_price:
     if not route.empty:
         st.caption(f"Known route · {route['distance'].iat[0]:,.0f} km · {route['time'].iat[0]:.2f} h")
     if st.button("Predict price", type="primary"):
+        classes = ["economic", "premium", "firstClass"]
         try:
+            batch = [{**payload, "flightType": c} for c in classes]
             if API_URL:
-                pred = call_api("POST", "/predict", json=payload)["predictions"]
+                preds = call_api("POST", "/predict", json=batch)["predictions"]
             else:
                 m = get_model(FLIGHT_MODEL_PATH)
-                X = pd.DataFrame([{**payload, "distance": m["routes"][f"{origin}|{dest}"]}])
-                pred = {"predicted_price": float(m["pipeline"].predict(X[m["features"]])[0]),
-                        "model": m["model_type"]}
-            st.metric("Predicted price", f"R$ {pred['predicted_price']:,.2f}")
+                X = pd.DataFrame([{**b, "distance": m["routes"][f"{origin}|{dest}"]} for b in batch])
+                preds = [{"predicted_price": float(p), "model": m["model_type"]}
+                         for p in m["pipeline"].predict(X[m["features"]])]
+            by_class = {c: p["predicted_price"] for c, p in zip(classes, preds)}
+            pred = preds[classes.index(ftype)]
             hist = route[(route["flightType"] == ftype) & (route["agency"] == agency)]["price"]
-            if not hist.empty:
-                st.caption(f"Historical price for this route/class/agency: R$ {hist.mean():,.2f} · "
-                           f"model: {pred.get('model')}")
+            hist_txt = f"Historical average for this trip: R$ {hist.mean():,.2f} · " if not hist.empty else ""
+            left, right = st.columns([1, 1.3])
+            left.markdown(f"""<div class="result"><div class="sub">Predicted fare · {html.escape(origin)}
+→ {html.escape(dest)} · {ftype} · {html.escape(agency)}</div>
+<div class="big">R$ {pred['predicted_price']:,.2f}</div>
+<div class="sub">{hist_txt}model: {pred.get('model')}</div></div>""", unsafe_allow_html=True)
+            comp = pd.DataFrame({"class": classes, "price": [by_class[c] for c in classes]})
+            fig = px.bar(comp, x="class", y="price", text_auto=",.0f", color="class",
+                         title=f"Same route with {agency}, by class")
+            fig.update_layout(showlegend=False, height=300, margin=dict(t=50, b=10), yaxis_title="R$")
+            right.plotly_chart(fig, width="stretch")
         except Exception as e:  # surface API/network errors in the UI
             st.error(f"Prediction failed: {e}")
 
@@ -182,7 +236,7 @@ with tab_models:
         fp = metrics["flight_price"]
         st.subheader("Flight price regression")
         cand = pd.DataFrame(fp["candidates"]).T.reset_index(names="model")
-        st.dataframe(cand.round(3), hide_index=True, use_container_width=True)
+        st.dataframe(cand.round(3), hide_index=True, width="stretch")
         st.caption(f"Champion: **{fp['best_model']}** (MLflow v{fp['registry_version']}) · {fp['split']}. "
                    "`unseen_route_*` = 5-fold CV where test routes never appear in training; "
                    "the API uses the Ridge fallback for such routes.")
@@ -193,14 +247,14 @@ with tab_models:
             st.subheader("Gender classifier")
             exp = pd.DataFrame(gm["experiments"]).T.reset_index(names="experiment")
             st.dataframe(exp[["experiment", "accuracy", "f1_macro", "unseen_names_accuracy"]],
-                         hide_index=True, use_container_width=True)
+                         hide_index=True, width="stretch")
     if "recommender" in metrics:
         rm = metrics["recommender"]
         with cols[1]:
             st.subheader("Hotel recommender")
             t = pd.DataFrame(rm["test"]).T.reset_index(names="ranking")
             st.dataframe(t[["ranking", "hit_at_1", "hit_at_3", "mrr"]].round(3), hide_index=True,
-                         use_container_width=True)
+                         width="stretch")
             st.caption(f"Tuned weights: {rm['weights']}")
     if DRIFT_REPORT_PATH.exists():
         st.subheader("Data drift (PSI, last 90 days vs history)")
@@ -208,7 +262,7 @@ with tab_models:
         psi = pd.Series(d["psi"], name="PSI").rename_axis("feature").reset_index()
         fig = px.bar(psi, x="feature", y="PSI", title=f"Alert threshold {d['threshold']}")
         fig.add_hline(y=d["threshold"], line_dash="dash", line_color="red")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         (st.error if d["drift_detected"] else st.success)(
             f"Drift detected in {list(d['drifted_features'])}" if d["drift_detected"] else "No significant drift")
     figs = sorted(FIGURES_DIR.glob("*.png"))
@@ -218,3 +272,7 @@ with tab_models:
                 cs = st.columns(2)
                 for c, f in zip(cs, figs[row:row + 2]):
                     c.image(str(f), caption=f.stem.replace("_", " "))
+
+st.divider()
+st.caption("Voyage Analytics · ML models trained on the agency's flight, hotel and user data · "
+           + (f"predictions served by the API at {API_URL}" if API_URL else "predictions from the bundled models"))
