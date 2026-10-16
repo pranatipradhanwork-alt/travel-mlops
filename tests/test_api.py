@@ -100,3 +100,9 @@ def test_metrics_endpoint(client):
     text = client.get("/metrics").get_data(as_text=True)
     assert 'travel_api_requests_total{endpoint="/predict",status="200"}' in text
     assert "travel_api_predictions_total" in text
+
+
+def test_index_lists_endpoints(client):
+    r = client.get("/")
+    assert r.status_code == 200 and r.mimetype == "text/html"
+    assert b'href="/health"' in r.data and b"/predict/gender" in r.data

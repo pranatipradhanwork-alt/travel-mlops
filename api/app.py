@@ -21,6 +21,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 from flask import Flask, Response, g, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.config import FLIGHT_MODEL_PATH, GENDER_MODEL_PATH, RECOMMENDER_PATH  # noqa: E402
@@ -30,6 +31,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("travel-api")
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # behind Render's proxy: build https:// URLs
 MODELS = {}
 REQUIRED_FLIGHT_FIELDS = ["from", "to", "flightType", "agency"]
 
@@ -80,6 +82,32 @@ def flight_categories():
 
 
 # --------------------------------------------------------------------- endpoints
+INDEX_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel MLOps API</title>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;line-height:1.5}
+code,pre{background:#f3f3f3;border-radius:4px;padding:2px 4px}pre{padding:12px;overflow-x:auto}</style></head>
+<body><h1>Travel MLOps API</h1>
+<p>Flight price prediction, gender classification and hotel recommendations.</p>
+<h2>Try it in the browser</h2>
+<ul>
+<li><a href="/health">/health</a> &ndash; service status and loaded models</li>
+<li><a href="/metadata">/metadata</a> &ndash; cities, flight types and agencies the model knows</li>
+<li><a href="/recommend/5?k=3">/recommend/5?k=3</a> &ndash; hotel recommendations for user 5</li>
+<li><a href="/metrics">/metrics</a> &ndash; request and prediction counters (Prometheus format)</li>
+</ul>
+<h2>POST endpoints</h2>
+<pre>curl -X POST {base}predict -H "Content-Type: application/json" \\
+  -d '{"from": "Recife (PE)", "to": "Florianopolis (SC)", "flightType": "firstClass", "agency": "FlyingDrops"}'
+
+curl -X POST {base}predict/gender -H "Content-Type: application/json" -d '{"name": "Maria Silva"}'</pre>
+</body></html>"""
+
+
+@app.get("/")
+def index():
+    return Response(INDEX_HTML.replace("{base}", request.host_url), mimetype="text/html")
+
 @app.get("/health")
 def health():
     status = {k: k in MODELS for k in ("flight", "gender", "recommender")}
