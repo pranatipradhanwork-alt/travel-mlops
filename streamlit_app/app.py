@@ -63,7 +63,7 @@ def get_model(path):
     return joblib.load(path)
 
 
-@st.cache_data
+@st.cache_resource  # shared and never copied: the data is ~200 MB in memory and read-only
 def get_data():
     users, flights, hotels = load_users(), load_flights(), load_hotels()
     return users, flights, hotels, outbound_legs(flights)
@@ -128,7 +128,7 @@ with tab_rec:
                          width="stretch")
 
 # ---------------------------------------------------------------- insights
-@st.cache_resource
+@st.cache_data  # small figures; each session gets its own copy, so concurrent renders cannot clash
 def insight_figures():
     """Built once per server: Streamlit re-runs the whole script on every click."""
     route_counts = outbound.groupby(["from", "to"]).size()
