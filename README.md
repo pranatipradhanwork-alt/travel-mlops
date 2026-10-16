@@ -6,6 +6,20 @@ An end-to-end, production-style ML system for the travel domain, built on the **
 * **Automation:** retraining orchestrated by Apache Airflow, releases shipped by a Jenkins CI/CD pipeline.
 * **Tracking and UI:** MLflow for experiments and versioning, plus an interactive Streamlit app.
 
+## Live demo
+
+| | Link |
+|---|---|
+| **Web app** (hotel recommendations, travel insights, price and gender prediction, model monitoring) | https://pranati-voyage-analytics.onrender.com |
+| **REST API** (endpoint list and examples on the home page) | https://travel-mlops.onrender.com |
+
+Both run on Render's free plan, which sleeps when idle: the first visit can take about a minute to wake up.
+
+```bash
+curl -X POST https://travel-mlops.onrender.com/predict -H 'Content-Type: application/json' \
+  -d '{"from":"Recife (PE)","to":"Florianopolis (SC)","flightType":"firstClass","agency":"FlyingDrops"}'
+```
+
 | Model | Approach | Result (held-out) |
 |---|---|---|
 | Flight price | Random Forest champion + Ridge fallback for unseen routes | RMSE **0.00**, R² **1.000** on future flights (time split); R² 0.88 on unseen routes (fallback) |
@@ -176,7 +190,7 @@ Requirements: Python 3.12+. For the container parts: `brew install colima docker
 git clone <this-repo> && cd travel-mlops
 make setup        # .venv + dependencies
 make train        # validate → drift check → train 3 models → MLflow (~2 min)
-make test         # 24 tests
+make test         # 25 tests
 make api          # REST API      → http://localhost:8000
 make ui           # Streamlit     → http://localhost:8501
 make mlflow-ui    # MLflow        → http://localhost:5001
@@ -191,6 +205,20 @@ make jenkins-up && make jenkins-build                       # Jenkins pipeline �
 
 **VS Code:** open the folder, select the `.venv` interpreter, and use **Run and Debug** → *Flask API* / *Streamlit app* /
 *Train all models*. Tests appear in the Testing panel.
+
+## Deploying to Render
+
+Trained models aren't committed, so both Render images train them during the build (about 5 minutes on the free plan).
+Create a **Web Service** per app from this repository with language **Docker**, branch `main`, and:
+
+| Service | Dockerfile Path | Health Check Path |
+|---|---|---|
+| REST API | `./Dockerfile.render` | `/health` |
+| Streamlit app | `./Dockerfile.streamlit.render` | `/_stcore/health` |
+
+No environment variables are needed: Render sets `PORT` and both images read it. Connect the repository through
+**Git Provider → GitHub** (not the public URL) so that pushes to `main` deploy automatically. The builds cap training at
+2 workers, because build machines report far more CPU cores than they actually give the build.
 
 ## Usage
 
