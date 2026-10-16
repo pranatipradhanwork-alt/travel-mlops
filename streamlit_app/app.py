@@ -78,7 +78,7 @@ def call_api(method, path, **kw):
 users, flights, hotels, outbound = get_data()
 rec = get_model(RECOMMENDER_PATH)
 
-n_cities = len(set(flights["from"]) | set(flights["to"]))
+n_cities = len(set(flights["from"].unique()) | set(flights["to"].unique()))
 st.markdown(f"""<div class="hero"><h1>✈️ Voyage Analytics</h1>
 <p>Hotel recommendations, flight price prediction and travel insights for a Brazilian travel agency.</p>
 <div class="stats">
@@ -128,48 +128,56 @@ with tab_rec:
                          width="stretch")
 
 # ---------------------------------------------------------------- insights
-with tab_insights:
-    m1, m2, m3, m4 = st.columns(4)
+@st.cache_resource
+def insight_figures():
+    """Built once per server: Streamlit re-runs the whole script on every click."""
     route_counts = outbound.groupby(["from", "to"]).size()
-    busiest, busiest_n = route_counts.idxmax(), route_counts.max()
-    m1.metric("Avg flight price", f"R$ {flights['price'].mean():,.0f}")
-    m2.metric("Avg hotel night", f"R$ {hotels['price'].mean():,.0f}")
-    m3.metric("Avg hotel stay", f"{hotels['days'].mean():.1f} nights")
-    m4.metric(f"Busiest route: {busiest[0].split(' (')[0]} → {busiest[1].split(' (')[0]}",
-              f"{busiest_n:,} trips")
-
-    c1, c2 = st.columns(2)
+    busiest = route_counts.idxmax()
+    stats = {"flight": flights["price"].mean(), "night": hotels["price"].mean(), "days": hotels["days"].mean(),
+             "route": f"{busiest[0].split(' (')[0]} → {busiest[1].split(' (')[0]}", "route_n": route_counts.max()}
+    figs = []
     monthly = outbound.set_index("date").resample("MS")["price"].count().rename("trips").reset_index()
-    c1.plotly_chart(px.line(monthly, x="date", y="trips", title="Trips per month"), width="stretch")
-    c2.plotly_chart(px.box(flights, x="flightType", y="price", color="agency",
-                           category_orders={"flightType": ["economic", "premium", "firstClass"]},
-                           title="Flight price by class and agency"), width="stretch")
-
-    c3, c4 = st.columns(2)
+    figs.append(px.line(monthly, x="date", y="trips", title="Trips per month"))
+    # A sample keeps the box plot's shape without sending ~270k prices to the browser.
+    sample = flights.sample(min(len(flights), 5000), random_state=0)
+    figs.append(px.box(sample, x="flightType", y="price", color="agency",
+                       category_orders={"flightType": ["economic", "premium", "firstClass"]},
+                       title="Flight price by class and agency"))
     dest = hotels.groupby("place").agg(stays=("travelCode", "count"), price=("price", "mean")).reset_index()
-    c3.plotly_chart(px.bar(dest.sort_values("stays"), x="stays", y="place", orientation="h", color="price",
-                           title="Hotel stays by city (colour = nightly price)"), width="stretch")
+    figs.append(px.bar(dest.sort_values("stays"), x="stays", y="place", orientation="h", color="price",
+                       title="Hotel stays by city (colour = nightly price)"))
     routes = flights.groupby(["from", "to", "flightType"]).agg(distance=("distance", "first"),
                                                                price=("price", "mean")).reset_index()
-    c4.plotly_chart(px.scatter(routes, x="distance", y="price", color="flightType", hover_data=["from", "to"],
-                               title="Average price vs distance per route"), width="stretch")
-
-    c5, c6 = st.columns(2)
+    figs.append(px.scatter(routes, x="distance", y="price", color="flightType", hover_data=["from", "to"],
+                           title="Average price vs distance per route"))
     od = pd.crosstab(outbound["from"], outbound["to"])
-    c5.plotly_chart(px.imshow(od, title="Trips: origin → destination", aspect="auto",
-                              color_continuous_scale="Blues"), width="stretch")
+    figs.append(px.imshow(od, title="Trips: origin → destination", aspect="auto", color_continuous_scale="Blues"))
     demo = users.merge(hotels, left_on="code", right_on="userCode")
     demo["age_band"] = pd.cut(demo["age"], [0, 30, 45, 60, 200], labels=["<30", "30-44", "45-59", "60+"])
-    c6.plotly_chart(px.histogram(demo, x="age_band", y="total", histfunc="avg", color="company",
-                                 barmode="group", title="Average hotel spend per stay by age and company"),
-                    width="stretch")
+    spend = demo.groupby(["age_band", "company"], observed=True)["total"].mean().reset_index()
+    figs.append(px.bar(spend, x="age_band", y="total", color="company", barmode="group",
+                       title="Average hotel spend per stay by age and company"))
+    return stats, figs
+
+
+with tab_insights:
+    stats, figs = insight_figures()
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Avg flight price", f"R$ {stats['flight']:,.0f}")
+    m2.metric("Avg hotel night", f"R$ {stats['night']:,.0f}")
+    m3.metric("Avg hotel stay", f"{stats['days']:.1f} nights")
+    m4.metric(f"Busiest route: {stats['route']}", f"{stats['route_n']:,} trips")
+    for left_fig, right_fig in zip(figs[::2], figs[1::2]):
+        c1, c2 = st.columns(2)
+        c1.plotly_chart(left_fig, width="stretch")
+        c2.plotly_chart(right_fig, width="stretch")
     st.info("**Insight:** destinations are spread almost evenly across cities for every origin, age group "
             "and company, which is why personal history adds only a modest lift to recommendations "
             "(see Model monitoring).")
 
 # ---------------------------------------------------------------- flight price
 with tab_price:
-    cities = sorted(set(flights["from"]) | set(flights["to"]))
+    cities = sorted(set(flights["from"].unique()) | set(flights["to"].unique()))
     c1, c2, c3, c4 = st.columns(4)
     origin = c1.selectbox("From", cities)
     dest = c2.selectbox("To", [c for c in cities if c != origin])
