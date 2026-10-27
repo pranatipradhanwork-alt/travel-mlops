@@ -48,6 +48,9 @@ curl -X POST localhost:8000/predict/gender -H 'Content-Type: application/json' -
 ```json
 {"gender": "female", "confidence": 0.92, "probabilities": {"female": 0.92, "male": 0.08}, "note": "..."}
 ```
+`gender` is `"uncertain"` when the first name is not a known first name (e.g. `"abc"`) or the top
+probability is below 0.60; `note` says which. Digits, symbols or a one-letter first name return 400.
+Rules: `src/gender_rules.py`.
 
 ### `GET /recommend/<user_code>`
 Query parameters: `k` (1–20, default 5), `max_price` (nightly), `place`, `exclude_booked=true`.

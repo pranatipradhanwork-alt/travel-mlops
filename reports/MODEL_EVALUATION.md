@@ -67,16 +67,27 @@ The figures are in `reports/figures/`.
 **Protocol.**
 - **Stratified 5-fold cross-validation**, reporting accuracy and macro precision, recall and F1.
 - **Unseen names:** `GroupKFold` grouped by first name, so the model is tested only on first names it has never seen.
+- **World names:** 5-fold held-out accuracy on 31,297 labelled first names from many countries, and on the
+  1,220 of them used in India. A test name is always removed from all training data, including `users.csv`.
 
-| Experiment | Labels | Accuracy | Macro F1 | Unseen-names accuracy |
-|---|---|---|---|---|
-| Name only | female / male / none | 0.543 | 0.530 | 0.477 |
-| Name + age, company, travel behaviour | female / male | 0.900 | 0.900 | 0.753 |
-| **Name only** ✅ (served) | female / male | **0.894** | **0.894** | **0.764** |
+| Experiment | Training names | Accuracy | Macro F1 | Unseen-names accuracy | World held-out | Indian held-out |
+|---|---|---|---|---|---|---|
+| Name only, female / male / none | users | 0.543 | 0.530 | 0.477 | – | – |
+| Name + age, company, travel behaviour | users | 0.900 | 0.900 | 0.753 | – | – |
+| Name only (served until Oct 2026) | users | 0.894 | 0.894 | 0.764 | 0.744 | 0.685 |
+| **Name only** ✅ (served) | **users + world names** | **0.931** | **0.931** | **0.886** | **0.891** | **0.868** |
 
-Per class (served model): female precision 0.88 / recall 0.91 · male precision 0.91 / recall 0.88.
+Per class (served model): female precision 0.95 / recall 0.91 · male precision 0.91 / recall 0.95.
 
-![confusion](figures/gender_confusion_binary_name_only.png)
+![confusion](figures/gender_confusion_binary_name_plus_world_names.png)
+
+**World names (`data/world_names.csv`).** 31,297 first names labelled clearly male (16,083) or female (15,214),
+taken from Jörg Michael's `nam_dict` (via the `gender-guesser` package, GNU FDL 1.2+). Unisex names are dropped.
+The old model learned from only 484 distinct first names, so it missed patterns from other countries: it
+called *Aarti* male and was 68.5% accurate on Indian names. Adding the world names keeps the same model
+(TF-IDF character 2–4-grams + logistic regression, C=5) and raises never-seen-name accuracy by 12 points and
+Indian names by 18 points. We also tried 1–5-grams and C = 20 or 50. All six settings were within about 1 point
+of each other, so we kept the original setting and changed only the data.
 
 **Interpretation**
 * **`none` cannot be predicted.** Adding it as a third class drops accuracy from 89% to 54%, and the
@@ -85,12 +96,50 @@ Per class (served model): female precision 0.88 / recall 0.91 · male precision 
 * **Behavioural features add nothing reliable.** They gain +0.6 points on regular CV but lose 1.1 points
   on unseen names, and the averages per gender are almost identical (age 42.3–43.2, first-class share 42–43%).
   Following Occam's razor, we serve the simpler name-only model.
-* **The model generalises to new names** at 76% accuracy. It learns sub-word patterns (e.g. names
-  ending in *-a*, *-ine*) through character 2–4-grams.
+* **More names beat more features.** The model generalises to new names at 89% accuracy. It learns sub-word
+  patterns (e.g. names ending in *-a*, *-ine*) through character 2–4-grams, and more varied names teach it more patterns.
 * **Ethics note.** Inferring gender from a name is unreliable and gender is not binary. The API response says so,
   and the prediction should never drive decisions about individuals.
 
 **Quality gate:** macro F1 ≥ 0.80 (`MIN_GENDER_F1`). Passed.
+
+### 3.1 Abstaining with "uncertain" (non-names and close calls)
+
+**Problem.** The model always picks male or female, even for input that is not a name.
+With the old model, "abc" returned *male* at 0.501 (a coin flip), "abcabc abcabc" *female* at 0.633, and random
+letters like "qzvk" *male* at 0.93. The new model is even surer on gibberish ("abc" → male 0.92), so a
+confidence cutoff alone cannot fix this.
+
+**Fix (`src/gender_rules.py`, used by the API and the Streamlit app).**
+1. **Input check → HTTP 400:** only letters, spaces, hyphens and apostrophes are allowed, and the first name
+   needs at least 2 letters. The minimum is 2, not 3, because real names such as *Al*, *Ed* and *Jo* exist.
+2. **Known-names check → "uncertain":** the first name must be in a list of 34,484 first names from many
+   countries (`src/first_names.txt`: US Census 1990, plus `nam_dict` with names from 50+ countries including
+   India, plus every name in `users.csv`). This is what stops gibberish.
+3. **Confidence cutoff → "uncertain":** the top probability must be at least **0.60**.
+
+**Choosing the cutoff (served model).** Out-of-fold probabilities: users scored with `GroupKFold(5)` by first
+name, and world names with 5-fold. Every name is scored by a model that never saw it.
+
+| Cutoff | Users: names → uncertain | Users: accuracy on the rest | Users: wrong answers caught | World: → uncertain / accuracy on rest | Indian: → uncertain / accuracy on rest |
+|---|---|---|---|---|---|
+| none | 0% | 88.6% | 0 / 103 | 0% / 89.1% | 0% / 86.8% |
+| 0.55 | 3.3% | 90.7% | 22 / 103 | 3.2% / 90.4% | 3.6% / 88.5% |
+| **0.60** ✅ | **8.0%** | **91.8%** | **35 / 103** | **6.5% / 91.4%** | **7.4% / 89.8%** |
+| 0.65 | 11.7% | 92.3% | 42 / 103 | 9.7% / 92.4% | 10.7% / 91.1% |
+| 0.70 | 15.6% | 93.3% | 52 / 103 | 13.5% / 93.3% | 14.9% / 92.2% |
+
+We picked **0.60**: it removes a third of the wrong answers while giving no answer for only about 1 name in 13.
+Higher cutoffs gain about 0.5–1.5 points of accuracy for every 4 more points of real names left unanswered.
+With the old model, 0.60 left 18.4% of never-seen names unanswered (79.4% accuracy on the rest), so the
+retrained model abstains less than half as often.
+
+The names check handles the gibberish: none of the 26 test strings ("abc", "abcabc", "axhy", "qzvk", "qwerty",
+"user", …) is in the list, so all of them return "uncertain".
+
+**Limitations.** Some names stay hard from spelling alone. *Pranati* gets female 0.54 → "uncertain", and
+*Aarti* still comes out male 0.66 even though it is labelled female in the training data, because the model learns
+patterns, not single names. Rare names missing from the list get "uncertain" rather than an error.
 
 ---
 

@@ -23,7 +23,7 @@ curl -X POST https://travel-mlops.onrender.com/predict -H 'Content-Type: applica
 | Model | Approach | Result (held-out) |
 |---|---|---|
 | Flight price | Random Forest champion + Ridge fallback for unseen routes | RMSE **0.00**, R² **1.000** on future flights (time split); R² 0.88 on unseen routes (fallback) |
-| Gender | TF-IDF character n-grams of first name + logistic regression | Accuracy **89.4%**, macro F1 **0.894**; 76% on never-seen names |
+| Gender | TF-IDF character n-grams of first name + logistic regression, trained on users + 31k labelled names from many countries | Accuracy **93.1%**, macro F1 **0.931**; 88.6% on never-seen names, 86.8% on Indian names |
 | Hotel recommendation | Hybrid (collaborative + home-city penalty), weights tuned by grid search | hit@3 **0.375** vs 0.329 random / 0.365 popularity |
 
 * **Data exploration and modeling walkthrough:** [notebooks/travel_capstone_analysis.ipynb](notebooks/travel_capstone_analysis.ipynb)
@@ -78,7 +78,7 @@ The models must:
 | 5 | **Apache Airflow** DAGs to automate the workflow | ingest → validate → drift → 3× train (parallel) → quality gate → deploy (`airflow/dags/`) | [airflow/README.md](airflow/README.md) |
 | 6 | **CI/CD with Jenkins** | lint → validate → train → test → build → smoke test → push → deploy + auto-rollback (verified, 3 min 40 s) | [jenkins/README.md](jenkins/README.md) |
 | 7 | **MLflow** model tracking and versioning | 3 experiments, model registry, `@champion` alias, figures logged as artifacts (`src/tracking.py`) | [src/README.md](src/README.md#mlflow-usage) |
-| 8 | **Gender classification** model | Name-based classifier served by the API. 3-class and behaviour experiments logged (`src/train_gender.py`) | [evaluation](reports/MODEL_EVALUATION.md#3-gender-classification) |
+| 8 | **Gender classification** model | Name-based classifier served by the API, trained on users plus world names (`data/world_names.csv`). Users-only, 3-class and behaviour experiments logged (`src/train_gender.py`) | [evaluation](reports/MODEL_EVALUATION.md#3-gender-classification) |
 | 9 | **Recommendation model + Streamlit** app with insights and visualisations | Hybrid recommender tuned on temporal validation. 5-tab app (`src/recommender.py`, `streamlit_app/`) | [streamlit_app/README.md](streamlit_app/README.md) |
 
 ## Datasets
@@ -255,6 +255,9 @@ travel insights, try the price estimator and the gender classifier, and check mo
   so the selected features are `from`, `to`, `flightType`, `agency`, `distance`.
 * **Trees memorise routes and Ridge generalises.** That's why the API automatically falls back to Ridge for unseen routes.
 * **Gender "none" (one third of users) means "not disclosed"** and isn't predictable, so the served model is male/female from the first name.
+* **The gender API says "uncertain" instead of guessing** when the first name is not in a worldwide list of
+  ~34k first names (so "abc" or "axhy" get no gender) or when the model's confidence is below 0.60.
+  Digits, symbols or a one-letter name return HTTP 400. Cutoff chosen from data: [evaluation §3.1](reports/MODEL_EVALUATION.md#31-abstaining-with-uncertain-non-names-and-close-calls).
 * **Destinations are almost uniformly random**, which puts a ceiling on recommendation quality. The pipeline reports lift
   over random and popularity baselines instead of claiming headline accuracy.
 
