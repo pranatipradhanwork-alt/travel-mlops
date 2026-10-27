@@ -25,7 +25,7 @@ def decide(first, probs):
     """first: lowercase first name, probs: {class: probability} -> (gender, note)."""
     best = max(probs, key=probs.get)
     if first not in KNOWN_NAMES:
-        return "uncertain", f"'{first}' is not a recognised first name, so no gender is given."
+        return "uncertain", f"{first.capitalize()} isn't in our list of known first names yet, so no gender is given."
     if probs[best] < THRESHOLD:
         return "uncertain", f"The model is not confident enough (below {THRESHOLD})."
     return best, "Predicted from first name only; users may choose not to disclose gender."
