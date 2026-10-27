@@ -1,6 +1,6 @@
 {
-  "served_model": "binary_name_only",
-  "registry_version": 1,
+  "served_model": "binary_name_plus_world_names",
+  "registry_version": 3,
   "passed_gate": true,
   "label_distribution": {
     "male": 452,
@@ -30,13 +30,27 @@
       "precision_macro": 0.895,
       "recall_macro": 0.8945,
       "unseen_names_accuracy": 0.7644,
-      "unseen_names_f1_macro": 0.7641
+      "unseen_names_f1_macro": 0.7641,
+      "world_heldout_accuracy": 0.7443,
+      "india_heldout_accuracy": 0.6852
+    },
+    "binary_name_plus_world_names": {
+      "accuracy": 0.9311,
+      "f1_macro": 0.9311,
+      "precision_macro": 0.9319,
+      "recall_macro": 0.931,
+      "unseen_names_accuracy": 0.8856,
+      "unseen_names_f1_macro": 0.8853,
+      "world_heldout_accuracy": 0.891,
+      "india_heldout_accuracy": 0.868
     }
   },
-  "accuracy": 0.8944,
-  "f1_macro": 0.8944,
-  "precision_macro": 0.895,
-  "recall_macro": 0.8945,
-  "unseen_names_accuracy": 0.7644,
-  "unseen_names_f1_macro": 0.7641
+  "accuracy": 0.9311,
+  "f1_macro": 0.9311,
+  "precision_macro": 0.9319,
+  "recall_macro": 0.931,
+  "unseen_names_accuracy": 0.8856,
+  "unseen_names_f1_macro": 0.8853,
+  "world_heldout_accuracy": 0.891,
+  "india_heldout_accuracy": 0.868
 }

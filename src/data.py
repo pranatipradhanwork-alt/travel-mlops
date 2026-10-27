@@ -8,7 +8,7 @@ Dataset facts that drive the design (see reports/MODEL_EVALUATION.md):
 """
 import pandas as pd
 
-from src.config import FLIGHTS_CSV, HOTELS_CSV, USERS_CSV
+from src.config import FLIGHTS_CSV, HOTELS_CSV, USERS_CSV, WORLD_NAMES_CSV
 
 REQUIRED_COLUMNS = {
     "users": {"code", "company", "name", "gender", "age"},
@@ -27,6 +27,11 @@ DATE_FEATURES = ["month", "day_of_week", "year", "is_weekend"]
 
 def load_users(path=USERS_CSV):
     return pd.read_csv(path)
+
+
+def load_world_names(path=WORLD_NAMES_CSV):
+    """Columns first_name, gender (male/female), india (bool). keep_default_na: "Nan" is a real name."""
+    return pd.read_csv(path, comment="#", keep_default_na=False).rename(columns={"name": "first_name"})
 
 
 def load_flights(path=FLIGHTS_CSV):

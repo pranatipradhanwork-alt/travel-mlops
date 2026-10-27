@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.config import (DRIFT_REPORT_PATH, FIGURES_DIR, FLIGHT_MODEL_PATH, GENDER_MODEL_PATH,  # noqa: E402
                         RECOMMENDER_PATH)
 from src.data import first_name, load_flights, load_hotels, load_users, outbound_legs  # noqa: E402
+from src import gender_rules  # noqa: E402
 from src.tracking import read_metrics  # noqa: E402
 
 API_URL = os.getenv("API_URL", "").rstrip("/")
@@ -217,21 +218,25 @@ with tab_price:
 
 # ---------------------------------------------------------------- gender
 with tab_gender:
-    st.write("Predicts **male / female** from a first name. Users who chose not to disclose "
-             "their gender (\"none\") cannot be identified from a name, so they are not a predicted class.")
-    name = st.text_input("Full name", "Patricia Carson")
-    if name.strip():
+    st.write("Predicts **male / female** from a first name, or **uncertain** when the input is not a known "
+             "first name or the model is not confident enough. Users who chose not to disclose their gender "
+             "(\"none\") cannot be identified from a name, so they are not a predicted class.")
+    name = st.text_input("Full name", "Patricia Carson").strip()
+    error = gender_rules.name_error(name) if name else None
+    if error:
+        st.warning(error)
+    elif name:
         try:
             if API_URL:
-                res = call_api("POST", "/predict/gender", json={"name": name})
-                probs = res["probabilities"]
+                probs = call_api("POST", "/predict/gender", json={"name": name})["probabilities"]
             else:
                 gm = get_model(GENDER_MODEL_PATH)
                 p = gm["pipeline"].predict_proba(pd.DataFrame([{"first_name": first_name(name)}]))[0]
                 probs = dict(zip(gm["classes"], p))
-            best = max(probs, key=probs.get)
-            st.metric("Prediction", best, f"{probs[best]:.0%} confidence", delta_color="off")
+            gender, note = gender_rules.decide(first_name(name), probs)
+            st.metric("Prediction", gender, f"{max(probs.values()):.0%} confidence", delta_color="off")
             st.progress(float(probs.get("female", 0)), text=f"female {probs.get('female', 0):.0%}")
+            st.caption(note)
         except Exception as e:
             st.error(f"Prediction failed: {e}")
 

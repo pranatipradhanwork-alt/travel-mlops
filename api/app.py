@@ -25,6 +25,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.config import FLIGHT_MODEL_PATH, GENDER_MODEL_PATH, RECOMMENDER_PATH  # noqa: E402
+from src import gender_rules  # noqa: E402
 from src.data import first_name  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -204,21 +205,29 @@ def predict_price():
 
 @app.post("/predict/gender")
 def predict_gender():
-    """Body: {"name": "Maria Silva"} -> male/female with class probabilities."""
+    """Body: {"name": "Maria Silva"} -> male/female/uncertain with class probabilities.
+
+    "uncertain" when the first name is not a known name or the model is not
+    confident enough (rules in src/gender_rules.py).
+    """
     if "gender" not in MODELS:
         return bad_request("gender model not loaded", 503)
     body = request.get_json(silent=True) or {}
-    if not str(body.get("name", "")).strip():
+    name = str(body.get("name", "")).strip()
+    if not name:
         return bad_request("field 'name' is required")
+    error = gender_rules.name_error(name)
+    if error:
+        return bad_request(error)
+
     m = MODELS["gender"]
-    X = pd.DataFrame([{"first_name": first_name(body["name"])}])
-    proba = m["pipeline"].predict_proba(X)[0]
-    best = int(proba.argmax())
+    first = first_name(name)
+    proba = m["pipeline"].predict_proba(pd.DataFrame([{"first_name": first}]))[0]
+    probs = {c: round(float(p), 4) for c, p in zip(m["classes"], proba)}
+    gender, note = gender_rules.decide(first, probs)
     with _lock:
-        PREDICTIONS[f"gender_{m['classes'][best]}"] += 1
-    return jsonify({"gender": m["classes"][best], "confidence": round(float(proba[best]), 4),
-                    "probabilities": {c: round(float(p), 4) for c, p in zip(m["classes"], proba)},
-                    "note": "Predicted from first name only; users may choose not to disclose gender."})
+        PREDICTIONS[f"gender_{gender}"] += 1
+    return jsonify({"gender": gender, "confidence": max(probs.values()), "probabilities": probs, "note": note})
 
 
 @app.get("/recommend/<int:user_code>")

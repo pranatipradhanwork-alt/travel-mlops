@@ -10,6 +10,7 @@ MODEL_DIR = Path(os.getenv("MODEL_DIR", ROOT / "models"))
 USERS_CSV = DATA_DIR / "users.csv"
 FLIGHTS_CSV = DATA_DIR / "flights.csv"
 HOTELS_CSV = DATA_DIR / "hotels.csv"
+WORLD_NAMES_CSV = DATA_DIR / "world_names.csv"  # labelled first names from many countries (gender model)
 
 FLIGHT_MODEL_PATH = MODEL_DIR / "flight_price_model.joblib"
 GENDER_MODEL_PATH = MODEL_DIR / "gender_model.joblib"

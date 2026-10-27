@@ -79,6 +79,28 @@ def test_gender(client):
     assert client.post("/predict/gender", json={}).status_code == 400
 
 
+@pytest.mark.parametrize("name, gender", [("Patricia", "female"), ("Priya Sharma", "female"), ("Rahul", "male")])
+def test_gender_names_from_many_countries(client, name, gender):
+    r = client.post("/predict/gender", json={"name": name})
+    assert r.status_code == 200 and r.json["gender"] == gender
+
+
+@pytest.mark.parametrize("name", ["abc", "abcabc abcabc", "axhy", "qzvk"])
+def test_gender_non_names_are_uncertain(client, name):
+    # the instructor's examples, plus random letters the model is confidently wrong on
+    r = client.post("/predict/gender", json={"name": name})
+    assert r.status_code == 200 and r.json["gender"] == "uncertain"
+
+
+@pytest.mark.parametrize("name", ["123", "j@ne", "A"])
+def test_gender_rejects_bad_input(client, name):
+    assert client.post("/predict/gender", json={"name": name}).status_code == 400
+
+
+def test_gender_allows_two_letter_names(client):
+    assert client.post("/predict/gender", json={"name": "Al"}).status_code == 200
+
+
 def test_recommend_known_user(client):
     r = client.get("/recommend/0?k=3")
     assert r.status_code == 200 and len(r.json["recommendations"]) == 3
